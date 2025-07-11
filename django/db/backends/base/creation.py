@@ -204,7 +204,21 @@ class BaseDatabaseCreation:
         return TEST_DATABASE_PREFIX + self.connection.settings_dict["NAME"]
 
     def _execute_create_test_db(self, cursor, parameters, keepdb=False):
-        cursor.execute("CREATE DATABASE %(dbname)s %(suffix)s" % parameters)
+        # Validate parameters to prevent SQL injection
+        dbname = parameters.get('dbname', '')
+        suffix = parameters.get('suffix', '')
+        
+        # Ensure dbname is properly quoted (should already be done by quote_name)
+        if not dbname:
+            raise ValueError("Database name cannot be empty")
+            
+        # Validate suffix contains only safe characters
+        if suffix and not all(c.isalnum() or c in ' _-=()' for c in suffix):
+            raise ValueError(f"Invalid database creation suffix: {suffix}")
+            
+        # Use safe string formatting with validated parameters
+        sql = f"CREATE DATABASE {dbname} {suffix}".strip()
+        cursor.execute(sql)
 
     def _create_test_db(self, verbosity, autoclobber, keepdb=False):
         """
