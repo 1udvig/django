@@ -516,13 +516,8 @@ class LazyStream:
         maliciously-malformed MIME request.
         """
         self._unget_history = [num_bytes] + self._unget_history[:49]
-        number_equal = len(
-            [
-                current_number
-                for current_number in self._unget_history
-                if current_number == num_bytes
-            ]
-        )
+        # Use efficient counting instead of creating a new list
+        number_equal = sum(1 for current_number in self._unget_history if current_number == num_bytes)
 
         if number_equal > 40:
             raise SuspiciousMultipartForm(
