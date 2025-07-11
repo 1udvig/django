@@ -341,7 +341,13 @@ END;
 
     def last_insert_id(self, cursor, table_name, pk_name):
         sq_name = self._get_sequence_name(cursor, strip_quotes(table_name), pk_name)
-        cursor.execute('"%s".currval' % sq_name)
+        # Validate sequence name to prevent SQL injection
+        # Oracle sequence names must be valid identifiers (alphanumeric, underscore, $)
+        if not sq_name or not all(c.isalnum() or c in '_$' for c in sq_name):
+            raise ValueError(f"Invalid sequence name: {sq_name}")
+        # Use proper quoting to prevent SQL injection
+        quoted_sq_name = self.quote_name(sq_name)
+        cursor.execute(f'SELECT {quoted_sq_name}.currval FROM DUAL')
         return cursor.fetchone()[0]
 
     def lookup_cast(self, lookup_type, internal_type=None):
